@@ -14,7 +14,7 @@
  *  find()			// Finds a list of events based on an id, and a date range
  *
  **/
-class GCal
+class EGCal
 {
 	// Calendar ID that you wish to connect to
 	private $calendar_id;
