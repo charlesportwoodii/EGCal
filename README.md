@@ -15,8 +15,11 @@ made through a single connection.
 Requirements
 ------------
 PHP 5.3+
+
 Yii Framework 1.1.x
+
 php-curl installed
+
 Usage
 =====
 
@@ -96,9 +99,49 @@ For example:
 		)
 	)
 
+
 	
 Creating Events
 ---------------
+
+### Single Events
+
+Single events can be created with the following format
+
+	$response = $cal->create(
+	    array(
+		'start'=>date('c', strtotime("4 pm")), 
+		'end'=>date('c', strtotime("5 pm")),
+		'title'=>'Appointment with Jane',
+		'details'=>'Talk about business proposal',
+		'location'=>'My Office',
+		'calendar_id'=>'#stardate@group.v.calendar.google.com'
+	    )
+	);
+
+#### Adjusting for Timezone
+
+As with retrieving events, you may have to offset your start and end times depending on your timezone.
+
+### Response
+
+An unsuccessful response will return an empty array
+
+A successful response will look as follows:
+
+	Array
+	(
+	    [id] => GoogleCalendarID
+	    [title] => Appointment with Jane
+	    [details] => Talk about business proposal
+	    [location] => My Office
+	    [start] => 2011-12-19T16:00:00.000-06:00
+	    [end] => 2011-12-19T17:00:00.000-06:00
+	)
+
+### Quick Events
+
+### Repeating Events
 
 
 Updating Events

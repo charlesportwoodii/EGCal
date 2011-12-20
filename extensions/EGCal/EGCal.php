@@ -40,6 +40,9 @@ class EGCal
 	// Response Code
 	private $response_code;
 	
+	// CURL Headers
+	private $headers;
+	
 	/**
 	 *  Constructor. Called on new GCal(). Sets up initial connection
 	 *
@@ -114,10 +117,23 @@ class EGCal
 		{
 			parse_str(str_replace(array("\n", "\r\n"), '&', $response), $response);
 			$this->auth = $response['Auth'];
+			$this->setHeaders();
 			return true;
 		}		
 	}
 	
+	/**
+	 *  Prepares the headers one time so we do not keep re-creating the headers
+	 *
+	 **/
+	private function setHeaders()
+	{
+		$this->headers = array(
+		    "Authorization: GoogleLogin auth=" . $this->auth,
+		    "GData-Version: 2.6",
+		    'Content-Type: application/json'
+		);
+	}
 	/**
 	 *  Simple debug helper
 	 *
@@ -190,16 +206,9 @@ class EGCal
 				// Load the CURL Library
 				Yii::import('application.extensions.GCal.Curl');
 				$curl = new Curl($url);
-				
-				// Build the headers for the JSON response
-				$headers = array(
-				    "Authorization: GoogleLogin auth=" . $this->auth,
-				    "GData-Version: 2.6",
-				    'Content-Type: application/json'
-				);
-				
+								
 				// Set the headers
-				$curl->setHeader($headers, $url, false);
+				$curl->setHeader($this->headers, $url, false);
 				
 				// Make the request
 				$response = json_decode($curl->run('GET'),true);
@@ -262,6 +271,159 @@ class EGCal
 			return false;
 		}
 	}
+	
+	/**
+	 *
+	 *
+	 **/
+	public function create($options, $type = 1)
+	{
+		if ($this->isConnected())
+		{
+			// Verify the options are properly  set
+			if (!empty($options) && is_array($options))
+			{
+		
+				// Verify the required fields are set to something
+				if (!isset($options['title']))
+				{
+					if ($this->level > 0)
+					{
+						echo 'No title was specified for event creation' . "\n";
+					}
+					return array();
+				}
+			
+				if (!isset($options['start']))
+				{
+					if ($this->level > 0)
+					{
+						echo 'No start time specified for event creation' . "\n";
+					}
+					return array();
+				}
+			
+				if (!isset($options['end']))
+				{
+					if ($this->level > 0)
+					{
+						echo 'No end time specified for event creation' . "\n";
+					}
+					return array();
+				}
+			
+				// End isset validation
+			
+				// Retrieve and set the calendar_id and URL
+				$calendar_id = $options['calendar_id'];
+			
+				$url = "http://www.google.com/calendar/feeds/$calendar_id/private/full?alt=jsonc";
+			
+				// Load the CURL Library
+				Yii::import('application.extensions.GCal.Curl');
+				$curl = new Curl($url);
+				
+				// Create a blank data set
+				$data = array();
+				
+				// If we are creating a single event, or doing anything else not specified below
+				if ($type == 1 || $type > 3)
+				{
+					// Build the data query
+					$data = array(
+						'data'=>array(
+							'title'=>$options['title'],
+							'details'=>isset($options['details']) ? $options['details'] : '',
+							'location'=>isset($options['location']) ? $options['location'] : '',
+							'status'=>isset($options['status']) ? $options['status'] : '',
+							'when'=>array(
+								'start'=>date('Y-m-d\TH:i:s', strtotime($options['start'])),
+								'end'=>date('Y-m-d\TH:i:s', strtotime($options['end']))
+							)
+						)
+					);
+					
+				}
+				/*
+				else if ($type == 2) // Quick Events
+				{
+			
+				}
+				else if ($type == 3) // Recurring Events
+				{
+					{
+					  "data": {
+					    "recurrence": "DTSTART;VALUE=DATE:20100505\r\nDTEND;VALUE=DATE:20100506\r\nRRULE:FREQ=WEEKLY;BYDAY=Tu;UNTIL=20100904\r\n"
+					  }
+					}
+					
+					$data = array(
+						'data'=>array(
+							'title'=>$options['title'],
+							'details'=>isset($options['details']) ? $options['details'] : '',
+							'location'=>isset($options['location']) ? $options['location'] : '',
+							'status'=>isset($options['status']) ? $options['status'] : '',
+							'recurrence'=>"DTSTART;VALUE=DATE:" . date('Y-m-d', strtotime($options['start'])) . "\r\nDTEND;VALUE=DATE:" . date('Y-m-d', strtotime($options['end'])). "\r\nRRULE:FREQ=weekly;BYDAY=Tu;UNTIL=" . date('2012-01-30') . "\r\n"
+						)
+					);
+				}
+				*/
+								
+				// Set the initial headers
+				$curl->setHeader($this->headers, $url, TRUE, TRUE, 30);
+					
+				// Make an initial request to get the GSESSIONID			
+				$response = $curl->run('POST', json_encode($data));
+								
+				$last_url =  $curl->last_url;			// Error code is 200, but is preceeded by a 301 for the gSessionId
+				unset($curl);
+				
+				// Rebuild the Object to create to create the actual create Request
+				
+				$curl = new Curl($url);
+				$curl->setHeader($this->headers, $last_url, TRUE);
+					
+				// Make an initial request to get the gSessionId	
+				$response = json_decode($curl->run('POST', json_encode($data)), TRUE);
+
+				error_reporting(0);
+				return array(
+					'id'=>$response['data']['id'],	
+					'title'=>$response['data']['title'],
+					'details'=>$response['data']['details'],
+					'location'=>$response['data']['location'],
+					'start'=>$response['data']['when'][0]['start'],
+					'end'=>$response['data']['when'][0]['end']
+				);
+			}
+			else
+			{
+				if ($this->level > 0)
+				{
+					echo 'Options are not properly set' . "\n";
+				}
+			}
+		}
+		else
+		{
+			if ($this->level > 0)
+			{
+				echo 'No connection has been started' . "\n";
+			}
+		}
+	}
+	
+	/*
+	public function update();
+	{
+	
+	}
+	
+	public function delete()
+	{
+	
+	}
+	*/
 }
 
 ?>
