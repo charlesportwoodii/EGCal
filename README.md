@@ -15,7 +15,8 @@ made through a single connection.
 Requirements
 ------------
 PHP 5.3+
-
+Yii Framework 1.1.x
+php-curl installed
 Usage
 =====
 
