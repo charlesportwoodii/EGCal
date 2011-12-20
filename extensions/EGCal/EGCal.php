@@ -94,7 +94,7 @@ class GCal
 			'service' => 'cl'
 		);
 			
-		Yii::import('application.extensions.GCal.Curl');
+		Yii::import('application.extensions.EGCal.Curl');
 		$curl = new Curl('https://www.google.com/accounts/ClientLogin');	
 		$response = $curl->run('POST', $content);
 		
