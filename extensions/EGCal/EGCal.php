@@ -523,7 +523,7 @@ class EGCal
 			// Set the header for the CURL request
 			$curl->setHeader($this->headers, $url, FALSE);
 			
-			/$response = json_decode($curl->run('PUT', json_encode($data)), true);
+			$response = json_decode($curl->run('PUT', json_encode($data)), true);
 			
 		}
 		else
