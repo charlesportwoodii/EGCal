@@ -12,6 +12,10 @@ How it Works
 EGCal works by making a autorization request to Google Calendar via ClientLogin. All subsequent requests are then
 made through a single connection.
 
+Purpose
+-------
+One of the projects I was working on required me to retrieve events from Google Calendar. I didn't see any good classes that were simple or intuitive to use, so I decided to build my own. The purpose of this class is to provide a simple interface between the programmer and Google Calendar. Once I have completed this class in it's entirety I may consider building an OAuth version of the class to use with Google Calendar API 3.0.
+
 Requirements
 ------------
 PHP 5.3+
@@ -25,28 +29,47 @@ Usage
 
 ### Importing the Class
 
+	~~~
+	[php]
 	Yii::import('application.extensions.EGCal.EGCal');
+	~~~
 
 ### Instantiation
 
 You have a couple of options here. All you need to do to get it working is to call:
 
+	~~~
+	[php]
 	$cal = new EGCal('username@gmail.com', 'gmail-password');
+	~~~
 
 If you would like EGCal to provide debugging text:
 	
+	~~~
+	[php]
 	$cal = new EGCal('username@gmail.com', 'gmail-password', TRUE);
+	~~~
 
-By default, EGCal uses your application name (Yii::app()->name) for the source request identifier. This can be easily alerted by calling (with debugging disable)
+By default, EGCal uses your application name (Yii::app()->name) for the source request identifier. This can be easily altered by calling (with debugging disable)
 
+	~~~
+	[php]
 	$cal = new EGCal('username@gmail.com', 'gmail-password', FALSE, 'companyName-applicationName-versionID');
-				
+	~~~
+
+Google Calendar Requirements
+----------------------------
+
+Calendars (calendar id's) must be either own be owned by the user or granted read/write access to the calendar.	
+Timezones should also be appropriatly set within Google Calendar.		
 
 Retrieving Events
 -----------------
 
 Retrieving events can be done by calling find() as such:
             
+        ~~~
+	[php]
 	$response = $cal->find(
 		array(
 			'min'=>date('c', strtotime("8 am")), 
@@ -56,6 +79,7 @@ Retrieving events can be done by calling find() as such:
 			'calendar_id'=>'#stardate@group.v.calendar.google.com'
 		)
 	);
+	~~~
 
 The fields min, max, and calendar_id are required.
 The fields limit and order are option, and default to 50, and ascending respectivly.
@@ -74,6 +98,8 @@ Each event will contain the calendar ID, the start and end times, and the title 
 
 For example:
 
+	~~~
+	[php]
 	Array
 	(
 	    [totalResults] => z
@@ -98,8 +124,7 @@ For example:
 		    [...]
 		)
 	)
-
-
+	~~~
 	
 Creating Events
 ---------------
@@ -108,6 +133,8 @@ Creating Events
 
 Single events can be created with the following format
 
+	~~~
+	[php]
 	$response = $cal->create(
 	    array(
 		'start'=>date('c', strtotime("4 pm")), 
@@ -118,6 +145,7 @@ Single events can be created with the following format
 		'calendar_id'=>'#stardate@group.v.calendar.google.com'
 	    )
 	);
+	~~~
 
 #### Adjusting for Timezone
 
@@ -129,6 +157,8 @@ An unsuccessful response will return an empty array
 
 A successful response will look as follows:
 
+	~~~
+	[php]
 	Array
 	(
 	    [id] => GoogleCalendarID
@@ -138,6 +168,7 @@ A successful response will look as follows:
 	    [start] => 2011-12-19T16:00:00.000-06:00
 	    [end] => 2011-12-19T17:00:00.000-06:00
 	)
+	~~~
 
 ### Quick Events
 
@@ -146,3 +177,23 @@ A successful response will look as follows:
 
 Updating Events
 ---------------
+
+
+Deleting Events
+---------------
+
+Single events can be deleted by calling the delete method. Deleting an event requires both the specific event_id you with to delete, and the calendar_id that event belongs to.
+
+For example:
+
+	~~~
+	[php]
+	$response = $cal->delete(
+		array(
+			'id'=>'9u5fj46m0fcd8scb3dohds2kso',
+			'calendar_id'=>'#stardate@group.v.calendar.google.com'
+		)
+	);
+	~~~
+
+The delete method will return true if the event was deleted, and false if the event could not be deleted. If logging is enabled, the response code and message from Google will be provided.

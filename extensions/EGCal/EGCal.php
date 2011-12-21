@@ -49,7 +49,7 @@ class EGCal
 	 *  @param string $username 	Google Username
 	 *  @param string $password	Google Password
 	 *  @param string $source 	Identifies your client application for support purposes. This string should take the form of your companyName-applicationName-versionID.
-	 *				http://code.google.com/googleapps/domain/calendar_resource/docs/1.0/calendar_resource_developers_guide_protocol.html#client_login
+	 *				https://code.google.com/googleapps/domain/calendar_resource/docs/1.0/calendar_resource_developers_guide_protocol.html#client_login
 	 *  @param mixed $level		Indicates the log level to use, 0, 1 (true, false)
 	 *  @call new GCal('username', 'password')
 	 *  @call new GCal('username', 'password', 1)
@@ -101,14 +101,14 @@ class EGCal
 		$curl = new Curl('https://www.google.com/accounts/ClientLogin');	
 		$response = $curl->run('POST', $content);
 		
-		$this->response_code = $curl->status;
+		$this->response_code = $curl->getStatus();
 		
-		if ($curl->status == '403')
+		if ($curl->getStatus() == '403')
 		{			
-			if ($this->level > 0)
+			if ($this->level == TRUE)
 			{
 				echo 'Could not establish connection to Google Calendar.' . "\n";
-				echo 'Response Code: ' . $curl->status . "\n";
+				echo 'Response Code: ' . $curl->getStatus() . "\n";
 			}
 			
 			return false;
@@ -126,13 +126,23 @@ class EGCal
 	 *  Prepares the headers one time so we do not keep re-creating the headers
 	 *
 	 **/
-	private function setHeaders()
+	private function setHeaders($ifMatch = FALSE, $contentLength=NULL)
 	{
 		$this->headers = array(
-		    "Authorization: GoogleLogin auth=" . $this->auth,
-		    "GData-Version: 2.6",
-		    'Content-Type: application/json'
-		);
+			    "Authorization: GoogleLogin auth=" . $this->auth,
+			    "GData-Version: 2.6",
+			    'Content-Type: application/json',
+			);
+		
+		if ($ifMatch)
+		{
+			$this->headers[] = 'If-Match: *';
+		}
+		
+		if ($contentLength != NULL)
+		{
+			$this->headers[] = 'Content-Length: ' . $contentLength;
+		}
 	}
 	/**
 	 *  Simple debug helper
@@ -140,7 +150,7 @@ class EGCal
 	 *  @param mixed $options
 	 *  @return print_r($option)
 	 **/
-	protected function debug($options)
+	private function debug($options)
 	{
 		print_r($options);
 	}
@@ -169,11 +179,11 @@ class EGCal
 	 *  Method to find events based upon a date range and calendar_id
 	 *
 	 *  @param array $options
-	 *	@subparam datetime min
-	 *	@subparam datetime max
-	 *	@subparam string order (a,d) (Ascending, Descending)
-	 *	@subparam int limit (50)
-	 *	@subparam string calendar_id
+	 *	@subparam datetime $min
+	 *	@subparam datetime $max
+	 *	@subparam string $order 	(a,d) (Ascending, Descending)
+	 *	@subparam int $limit 	(50)
+	 *	@subparam string 	$calendar_id
 	 *
 	 *  Example $options
 	 *	array(
@@ -201,7 +211,7 @@ class EGCal
 				$calendar_id = $options['calendar_id'];
 				
 				// Build the Calendar URL
-				$url = "http://www.google.com/calendar/feeds/$calendar_id/private/full?orderby=starttime&sortorder=$order&singleevents=true&start-min=$min&start-max=$max&max-results=$limit&alt=jsonc";
+				$url = "https://www.google.com/calendar/feeds/$calendar_id/private/full?orderby=starttime&sortorder=$order&singleevents=true&start-min=$min&start-max=$max&max-results=$limit&alt=jsonc";
 				
 				// Load the CURL Library
 				Yii::import('application.extensions.GCal.Curl');
@@ -214,7 +224,7 @@ class EGCal
 				$response = json_decode($curl->run('GET'),true);
 				
 				// Set the response code for debugging purposes
-				$this->response_code = $curl->status;
+				$this->response_code = $curl->getStatus();
 				
 				// We should receive a 200 response. If we don't, return a blank array
 				if ($this->response_code != '200')
@@ -226,18 +236,22 @@ class EGCal
 					'events'=>array()
 				);
 		
-				// Parse the response, and use it to populate our results
-				foreach ($response['data']['items'] as $item) {
-					$tmp = array(
-						'id' => $item['id'],
-						'start' => $item['when'][0]['start'],
-						'end' => $item['when'][0]['end'],
-						'title' => $item['title'],
-						//'location' => $item['location']
-					);
-					$results['events'][] = $tmp;
+				// Handles the case of there being no items in the last response
+				if ($response['data']['totalResults'] != 0)
+				{	
+					// Parse the response, and use it to populate our results
+					foreach ($response['data']['items'] as $item)
+					{
+						$tmp = array(
+							'id' => $item['id'],
+							'start' => $item['when'][0]['start'],
+							'end' => $item['when'][0]['end'],
+							'title' => $item['title'],
+							//'location' => $item['location']
+						);
+						$results['events'][] = $tmp;
+					}
 				}
-				
 				// Return the results as an array
 				return $results;
 		
@@ -245,7 +259,7 @@ class EGCal
 			else
 			{
 				// Debug Output
-				if ($this->level > 0)
+				if ($this->level == TRUE)
 				{
 					if (empty($options))
 					{
@@ -258,23 +272,46 @@ class EGCal
 					}
 				}
 				
-				return false;
+				return array();
 			}
 		}
 		else
 		{
 			// Debug Output
-			if ($this->level > 0)
+			if ($this->level == TRUE)
 			{
 				echo 'Cannot complete query. No connection has been established.' . "\n";
 			}
-			return false;
+			return array();
 		}
 	}
 	
 	/**
+	 *  Method to create new events
+	 *  @param int type
+	 *     $type = 1 		Single Event
+	 *     $type = 2		Quick Events
+	 *     $type = 3		Recurring Events
 	 *
+	 *  @param array $options | $type == 1
+	 *     @subparam datetime $start
+	 *     @subparam datetime $end
+	 *     @subparam string $title
+	 *     @subparam string $location
+	 *     @subparam string $details
+	 *     @subparam string $calendar_id
 	 *
+	 *  Example Options for Single Events
+	 *	    array(
+	 *		'start'=>date('c', strtotime("8 am")), 
+	 *		'end'=>date('c', strtotime("5 pm")),
+	 *		'title'=>'Meeting with Jane',
+	 *		'details'=>'Discuss business plan',
+	 *		'location'=>'My Office',
+	 * 		'calendar_id'=>'en.usa#holiday@group.v.calendar.google.com'
+	 *	    )
+	 *
+	 *  @return array
 	 **/
 	public function create($options, $type = 1)
 	{
@@ -287,7 +324,7 @@ class EGCal
 				// Verify the required fields are set to something
 				if (!isset($options['title']))
 				{
-					if ($this->level > 0)
+					if ($this->level == TRUE)
 					{
 						echo 'No title was specified for event creation' . "\n";
 					}
@@ -296,7 +333,7 @@ class EGCal
 			
 				if (!isset($options['start']))
 				{
-					if ($this->level > 0)
+					if ($this->level == TRUE)
 					{
 						echo 'No start time specified for event creation' . "\n";
 					}
@@ -305,7 +342,7 @@ class EGCal
 			
 				if (!isset($options['end']))
 				{
-					if ($this->level > 0)
+					if ($this->level == TRUE)
 					{
 						echo 'No end time specified for event creation' . "\n";
 					}
@@ -317,7 +354,7 @@ class EGCal
 				// Retrieve and set the calendar_id and URL
 				$calendar_id = $options['calendar_id'];
 			
-				$url = "http://www.google.com/calendar/feeds/$calendar_id/private/full?alt=jsonc";
+				$url = "https://www.google.com/calendar/feeds/$calendar_id/private/full?alt=jsonc";
 			
 				// Load the CURL Library
 				Yii::import('application.extensions.GCal.Curl');
@@ -375,7 +412,7 @@ class EGCal
 				// Make an initial request to get the GSESSIONID			
 				$response = $curl->run('POST', json_encode($data));
 								
-				$last_url =  $curl->last_url;			// Error code is 200, but is preceeded by a 301 for the gSessionId
+				$last_url =  $curl->getLastURL();			// Error code is 200, but is preceeded by a 301 for the gSessionId
 				unset($curl);
 				
 				// Rebuild the Object to create to create the actual create Request
@@ -398,32 +435,189 @@ class EGCal
 			}
 			else
 			{
-				if ($this->level > 0)
+				if ($this->level == TRUE)
 				{
 					echo 'Options are not properly set' . "\n";
+					return array();
 				}
 			}
 		}
 		else
 		{
-			if ($this->level > 0)
+			if ($this->level == TRUE)
 			{
 				echo 'No connection has been started' . "\n";
+				return array();
 			}
 		}
 	}
 	
-	/*
-	public function update();
+	/**
+	 *  Method to update events
+	 *  @param array $options
+	 *	@subparam string   $id
+	 *	@subparam bool     $canEdit
+	 *	@subparam string   $title
+	 *	@subparam string   $details
+	 *	@subparam string   $location
+	 *	@subparam datetime $start
+	 *	@subparam datetime $end
+	 *
+	 *
+	 *
+	 *
+	 **/
+	public function update($options=array())
 	{
-	
+		if (!empty($options))
+		{
+		
+			// Begin Validation
+			if (!isset($options['id']))
+			{
+				if ($this->level == TRUE)
+				{
+					echo 'ID was not set' . "\n";
+				}
+				return array();
+			}
+			
+			if (!isset($options['calendar_id']))
+			{
+				if ($this->level == TRUE)
+				{
+					echo 'Calendar ID was not set' . "\n";
+				}			
+				return array();
+			}
+			
+			// End isset validation
+			
+			// Retrieve and set the calendar_id and URL
+			$calendar_id = $options['calendar_id'];
+			$event_id = $options['id'];
+			
+			$url = "https://www.google.com/calendar/feeds/$calendar_id/private/full/$event_id?alt=jsonc";
+			
+			$data = array(
+				'data'=>array(
+					'id'=>$options['id'],
+					'title'=>$options['title'],
+					'details'=>$options['details'],
+					'location'=>$options['location'],
+					'when'=>array(
+						'start'=>date('Y-m-d\TH:i:s', strtotime($options['start'])),
+						'end'=>date('Y-m-d\TH:i:s', strtotime($options['end']))
+					)
+					
+				)
+			);
+			
+			// Load the CURL Library
+			Yii::import('application.extensions.GCal.Curl');
+			$curl = new Curl($url);
+			
+			// Set the headers for an If-Match Request
+			$this->setHeaders(TRUE, strlen(json_encode($data)));
+			
+			// Set the header for the CURL request
+			$curl->setHeader($this->headers, $url, FALSE);
+			
+			/$response = json_decode($curl->run('PUT', json_encode($data)), true);
+			
+		}
+		else
+		{
+			if ($this->level == TRUE)
+			{
+				echo 'Event ID was not set' . "\n";
+				return array();
+			}
+		}
 	}
 	
-	public function delete()
+	/**
+	 *  Method to delete events
+	 *  @param array $options
+	 *
+	 *
+	 *  @return bool response
+	 *	TRUE if the delete was successful, FALSE otherwise
+	 **/
+	public function delete($options=array())
 	{
-	
-	}
-	*/
+		if (!empty($options))
+		{
+		
+			// Begin Validation
+			if (!isset($options['id']))
+			{
+				if ($this->level == TRUE)
+				{
+					echo 'ID was not set' . "\n";
+				}
+				return false;
+			}
+			
+			if (!isset($options['calendar_id']))
+			{
+				if ($this->level == TRUE)
+				{
+					echo 'Calendar ID was not set' . "\n";
+				}			
+				return false;
+			}
+			
+			// End isset validation
+			
+			// Retrieve and set the calendar_id and URL
+			$calendar_id = $options['calendar_id'];
+			$event_id = $options['id'];
+			
+			$url = "https://www.google.com/calendar/feeds/$calendar_id/private/full/$event_id?alt=jsonc";
+		
+			// Load the CURL Library
+			Yii::import('application.extensions.GCal.Curl');
+			$curl = new Curl($url);
+			
+			// Set the headers for an If-Match Request
+			$this->setHeaders(TRUE);
+			
+			// Set the header for the CURL request
+			$curl->setHeader($this->headers, $url, false);
+			
+			// Reset the Headers
+			$this->setHeaders();
+			
+			// Make the request
+			$response = json_decode($curl->run('DELETE'),true);
+			
+			// Set the response code for debugging purposes
+			$this->response_code = $curl->getStatus();
+			
+			if ($this->response_code == 200 && $response == NULL)
+			{
+				return true;
+			}
+			else
+			{
+				if ($this->level == TRUE)
+				{
+					echo 'Deletion failed with response code: ' . $this->response_code . "\n";
+					echo 'Message: ' . $response['error']['message'];
+				}
+			}
+			return false;
+		}
+		else
+		{
+			if ($this->level == TRUE)
+			{
+				echo 'Event ID was not set' . "\n";
+				return false;
+			}
+		}
+	}	
 }
 
 ?>
