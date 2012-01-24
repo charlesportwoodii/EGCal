@@ -155,15 +155,35 @@ A successful response will look as follows:
 	    [end] => 2011-12-19T17:00:00.000-06:00
 	)
 
-
-### Quick Events
-
-### Repeating Events
-
-
 Updating Events
 ---------------
 
+Updating events is very simmilar to creating them, with the sole exception that with the request, you also pass the event_id you wish to update. Such a request may look as follows
+
+	$response = $cal->update(
+	    array(
+	        'id'=>'calendar_id',
+		'start'=>date('c', strtotime("4 pm")), 
+		'end'=>date('c', strtotime("5 pm")),
+		'title'=>'Appointment with Jane',
+		'details'=>'Talk about business proposal',
+		'location'=>'My Office',
+		'calendar_id'=>'#stardate@group.v.calendar.google.com'
+	    )
+	);
+	
+A successful response will look as follows:
+
+	Array
+	(
+	    [id] => GoogleCalendarID
+	    [title] => Appointment with Jane
+	    [details] => Talk about business proposal
+	    [location] => My Office
+	    [start] => 2011-12-19T16:00:00.000-06:00
+	    [end] => 2011-12-19T17:00:00.000-06:00
+	)
+	
 
 Deleting Events
 ---------------

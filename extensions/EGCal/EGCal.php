@@ -12,7 +12,9 @@
  *  isConnected()		// Returns bool if connection was successful
  *  getResponseCode()		// Returns HTTP response code from last request
  *  find()			// Finds a list of events based on an id, and a date range
- *
+ *  delete()                    // Deletes a single event
+ *  create()                    // Creates a single event
+ *  update()                    // Updats a single event
  **/
 class EGCal
 {
@@ -462,10 +464,16 @@ class EGCal
 	 *	@subparam string   $location
 	 *	@subparam datetime $start
 	 *	@subparam datetime $end
-	 *
-	 *
-	 *
-	 *
+	 *  Example Options for Update
+	 *	    array(
+	 *              'id'=>'calendar_id'
+	 *		'start'=>date('c', strtotime("8 am")), 
+	 *		'end'=>date('c', strtotime("5 pm")),
+	 *		'title'=>'Meeting with Jane',
+	 *		'details'=>'Discuss business plan',
+	 *		'location'=>'My Office',
+	 * 		'calendar_id'=>'en.usa#holiday@group.v.calendar.google.com'
+	 *	    )
 	 **/
 	public function update($options=array())
 	{
