@@ -154,7 +154,9 @@ class EGCal
 	 **/
 	private function debug($options)
 	{
+		echo '<pre>';
 		print_r($options);
+		echo '</pre>';
 	}
 	
 	/**
@@ -376,12 +378,11 @@ class EGCal
 							'location'=>isset($options['location']) ? $options['location'] : '',
 							'status'=>isset($options['status']) ? $options['status'] : '',
 							'when'=>array(array(
-								'start'=>date('Y-m-d\TH:i:s', strtotime($options['start'])),
-								'end'=>date('Y-m-d\TH:i:s', strtotime($options['end']))
+								'start'=>date('c', strtotime($options['start'])),
+								'end'=>date('c', strtotime($options['end']))
 							))
 						)
-					);
-					
+					);					
 				}
 				/*
 				else if ($type == 2) // Quick Events
@@ -501,6 +502,11 @@ class EGCal
 			
 			// End isset validation
 			
+			// Update by delete & create
+			$this->delete($options);
+			return $this->create($options);
+			
+			/*
 			// Retrieve and set the calendar_id and URL
 			$calendar_id = $options['calendar_id'];
 			$event_id = $options['id'];
@@ -513,10 +519,10 @@ class EGCal
 					'title'=>$options['title'],
 					'details'=>$options['details'],
 					'location'=>$options['location'],
-					'when'=>array(
+					'when'=>array(array(
 						'start'=>date('Y-m-d\TH:i:s', strtotime($options['start'])),
 						'end'=>date('Y-m-d\TH:i:s', strtotime($options['end']))
-					)
+					))
 					
 				)
 			);
@@ -532,6 +538,9 @@ class EGCal
 			$curl->setHeader($this->headers, $url, FALSE);
 			
 			$response = json_decode($curl->run('PUT', json_encode($data)), true);
+			
+			return $response;
+			*/
 			
 		}
 		else
