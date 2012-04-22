@@ -375,10 +375,10 @@ class EGCal
 							'details'=>isset($options['details']) ? $options['details'] : '',
 							'location'=>isset($options['location']) ? $options['location'] : '',
 							'status'=>isset($options['status']) ? $options['status'] : '',
-							'when'=>array(
+							'when'=>array(array(
 								'start'=>date('Y-m-d\TH:i:s', strtotime($options['start'])),
 								'end'=>date('Y-m-d\TH:i:s', strtotime($options['end']))
-							)
+							))
 						)
 					);
 					
