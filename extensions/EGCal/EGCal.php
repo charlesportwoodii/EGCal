@@ -362,7 +362,7 @@ class EGCal
 			
 				// Load the CURL Library
 				Yii::import('application.extensions.GCal.Curl');
-				$curl = new Curl($url);
+				//$curl = new Curl($url);
 				
 				// Create a blank data set
 				$data = array();
@@ -410,18 +410,18 @@ class EGCal
 				*/
 								
 				// Set the initial headers
-				$curl->setHeader($this->headers, $url, TRUE, TRUE, 30);
+				//$curl->setHeader($this->headers, $url, TRUE, TRUE, 30);
 					
 				// Make an initial request to get the GSESSIONID			
-				$response = $curl->run('POST', json_encode($data));
+				//$response = $curl->run('POST', json_encode($data));
 								
-				$last_url =  $curl->getLastURL();			// Error code is 200, but is preceeded by a 301 for the gSessionId
-				unset($curl);
+				//$last_url =  $curl->getLastURL();			// Error code is 200, but is preceeded by a 301 for the gSessionId
+				//unset($curl);
 				
 				// Rebuild the Object to create to create the actual create Request
 				
 				$curl = new Curl($url);
-				$curl->setHeader($this->headers, $last_url, TRUE);
+				$curl->setHeader($this->headers, $url, TRUE);
 					
 				// Make an initial request to get the gSessionId	
 				$response = json_decode($curl->run('POST', json_encode($data)), TRUE);
