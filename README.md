@@ -1,6 +1,9 @@
 EGCal - A Google Calendar Extension for Yii
 =============
 
+### DEPRECATION NOTICE
+On November 17, 2014, Google Will Deprecated V2 of the Calendar API. This extension will consequently no longer be supported or functional after that date.
+
 About
 -----
 
